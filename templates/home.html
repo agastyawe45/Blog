@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome, <span id="user-name"></span>!</h1>
+        <p>Email: <span id="user-email"></span></p>
+        <p>Account Type: <span id="user-account-type"></span></p>
+        <div>
+            <h2>Accessible Files</h2>
+            <div id="files-list">Loading files...</div>
+        </div>
+        <button id="logout-button">Logout</button>
+    </div>
+    <script src="{{ url_for('static', filename='home.js') }}"></script>
+</body>
+</html>
