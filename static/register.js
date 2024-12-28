@@ -1,53 +1,59 @@
-const apiUrl = "${API_URL}"; // Replace with the actual API URL from the environment variable
+document.getElementById("register-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
 
-// Register form submission handler
-document.getElementById("register-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
+  const formData = new FormData(document.getElementById("register-form"));
+  const userData = {
+    username: formData.get("username"),
+    password: formData.get("password"),
+    phoneNumber: formData.get("phone_number"),
+    country: formData.get("country"),
+    state: formData.get("state"),
+    city: formData.get("city"),
+    zipCode: formData.get("zip_code"),
+    accountType: formData.get("account_type"),
+  };
+  const profileImage = formData.get("profile_image");
+  const errorElement = document.getElementById("register-error");
 
-    const formData = new FormData(document.getElementById("register-form"));
-    const jsonFormData = Object.fromEntries(formData.entries());
+  if (Object.values(userData).some((value) => !value)) {
+    errorElement.textContent = "Please fill in all required fields.";
+    return;
+  }
 
-    // Get the profile image file
-    const profileImage = document.getElementById("register-profile-image").files[0];
+  try {
+    // Handle profile image upload (optional)
+    if (profileImage && profileImage.size > 0) {
+      const presignedUrlResponse = await fetch(`${API_URL}/api/get-presigned-url`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: profileImage.name, contentType: profileImage.type }),
+      });
+      const { url } = await presignedUrlResponse.json();
 
-    try {
-        if (profileImage) {
-            const preSignedUrlResponse = await fetch(`${apiUrl}/api/get-presigned-url`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ filename: profileImage.name, contentType: profileImage.type }),
-            });
+      await fetch(url, {
+        method: "PUT",
+        headers: { "Content-Type": profileImage.type },
+        body: profileImage,
+      });
 
-            const preSignedUrlData = await preSignedUrlResponse.json();
-
-            if (preSignedUrlData.url) {
-                await fetch(preSignedUrlData.url, {
-                    method: "PUT",
-                    headers: { "Content-Type": profileImage.type },
-                    body: profileImage,
-                });
-
-                jsonFormData.profileImage = preSignedUrlData.url.split("?")[0];
-            }
-        }
-
-        const response = await fetch(`${apiUrl}/api/register`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(jsonFormData),
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            window.location.href = "login.html";
-        } else {
-            document.getElementById("register-message").textContent =
-                data.message || "Registration failed. Please try again.";
-        }
-    } catch (error) {
-        document.getElementById("register-message").textContent =
-            "An error occurred. Please try again.";
-        console.error("Error during registration:", error);
+      userData.profileImage = url.split("?")[0]; // Use the S3 URL without query parameters
     }
+
+    // Register the user
+    const response = await fetch(`${API_URL}/api/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(userData),
+    });
+
+    const data = await response.json();
+
+    if (response.ok && data.success) {
+      window.location.href = "/login.html";
+    } else {
+      errorElement.textContent = data.message || "Registration failed. Please try again.";
+    }
+  } catch (error) {
+    errorElement.textContent = "An error occurred. Please try again later.";
+  }
 });
