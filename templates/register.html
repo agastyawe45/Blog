@@ -16,7 +16,7 @@
             </div>
             <div>
                 <label for="register-phone">Phone Number</label>
-                <input type="text" id="register-phone" name="phone_number" required>
+                <input type="tel" id="register-phone" name="phone_number" pattern="[0-9]{10}" required>
             </div>
             <div>
                 <label for="register-country">Country</label>
@@ -32,21 +32,22 @@
             </div>
             <div>
                 <label for="register-zip">Zip Code</label>
-                <input type="text" id="register-zip" name="zip_code" required>
+                <input type="text" id="register-zip" name="zip_code" pattern="[0-9]{5,10}" required>
             </div>
             <div>
                 <label for="register-password">Password</label>
-                <input type="password" id="register-password" name="password" required>
+                <input type="password" id="register-password" name="password" minlength="8" required>
             </div>
             <div>
                 <label for="register-confirm-password">Confirm Password</label>
-                <input type="password" id="register-confirm-password" name="confirm_password" required>
+                <input type="password" id="register-confirm-password" name="confirm_password" minlength="8" required>
             </div>
             <div>
-                <label for="register-account-type">
-                    <input type="checkbox" id="register-account-type" name="account_type" value="Premium">
-                    Premium Account
-                </label>
+                <label for="register-account-type">Account Type</label>
+                <select id="register-account-type" name="account_type" required>
+                    <option value="Regular">Regular</option>
+                    <option value="Premium">Premium</option>
+                </select>
             </div>
             <div>
                 <label for="register-profile-image">Profile Image</label>
@@ -55,7 +56,7 @@
             <button type="submit">Register</button>
         </form>
         <p id="register-message" class="message"></p>
-        <p>Already have an account? <a href="login.html">Login here</a></p>
+        <p>Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
     </div>
     <script src="{{ url_for('static', filename='register.js') }}"></script>
 </body>
