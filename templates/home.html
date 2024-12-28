@@ -3,20 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home</title>
+    <title>Home - BlogFolio</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="{{ url_for('static', filename='home.js') }}" defer></script>
 </head>
 <body>
     <div class="container">
-        <h1>Welcome, <span id="user-name"></span>!</h1>
-        <p>Email: <span id="user-email"></span></p>
-        <p>Account Type: <span id="user-account-type"></span></p>
-        <div>
-            <h2>Accessible Files</h2>
-            <div id="files-list">Loading files...</div>
-        </div>
-        <button id="logout-button">Logout</button>
+        <header>
+            <h1>Welcome to Your Dashboard</h1>
+            <nav>
+                <ul>
+                    <li><a href="{{ url_for('login') }}">Login</a></li>
+                    <li><a href="{{ url_for('register') }}">Register</a></li>
+                    <li><a href="{{ url_for('home') }}">Home</a></li>
+                </ul>
+            </nav>
+        </header>
+        <main>
+            <h2>Welcome, {{ username }}</h2>
+            <p>Here you can manage your blogs, create new content, and explore the BlogFolio community.</p>
+            <div class="actions">
+                <a href="/create-blog" class="button">Create New Blog</a>
+                <a href="/view-blogs" class="button">View My Blogs</a>
+            </div>
+        </main>
+        <footer>
+            <p>&copy; 2024 BlogFolio. All rights reserved.</p>
+        </footer>
     </div>
-    <script src="{{ url_for('static', filename='home.js') }}"></script>
 </body>
 </html>
