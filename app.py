@@ -9,6 +9,7 @@ import time
 import json
 from base64 import b64encode
 import logging
+from werkzeug.utils import secure_filename
 
 # Initialize Flask app
 app = Flask(__name__, static_folder="static")
@@ -113,19 +114,42 @@ def login():
 @app.route("/api/register", methods=["POST"])
 def register():
     try:
-        data = request.json
+        data = request.form.to_dict()
         data = convert_keys(data, camel_to_snake)
+
+        # Check required fields
         required_fields = [
             "username", "password", "phone_number", "country", "state", "city", "zip_code", "account_type"
         ]
         if not all(field in data for field in required_fields):
             return jsonify({"success": False, "message": "Missing required fields"}), 400
 
+        # Check if username already exists
         if User.query.filter_by(username=data["username"]).first():
             return jsonify({"success": False, "message": "Username already exists."}), 409
 
+        # Handle profile image upload
+        profile_image_url = None
+        if "profile_image" in request.files:
+            profile_image = request.files["profile_image"]
+            if profile_image:
+                # Secure filename and generate S3 key
+                filename = secure_filename(profile_image.filename)
+                s3_key = f"profile_images/{data['username']}/{filename}"
+
+                # Upload file to S3
+                s3.upload_fileobj(
+                    profile_image,
+                    UPLOADS_BUCKET,
+                    s3_key,
+                    ExtraArgs={"ContentType": profile_image.content_type}
+                )
+                profile_image_url = f"https://{UPLOADS_BUCKET}.s3.amazonaws.com/{s3_key}"
+
+        # Hash the password
         hashed_password = generate_password_hash(data["password"], method="pbkdf2:sha256")
 
+        # Create new user object
         new_user = User(
             username=data["username"],
             password=hashed_password,
@@ -135,7 +159,7 @@ def register():
             city=data["city"],
             zip_code=data["zip_code"],
             account_type=data["account_type"],
-            profile_image=data.get("profile_image"),
+            profile_image=profile_image_url,  # Store S3 URL
         )
         db.session.add(new_user)
         db.session.commit()
