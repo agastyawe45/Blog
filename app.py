@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, render_template
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_cors import CORS
@@ -12,7 +12,7 @@ import logging
 from werkzeug.utils import secure_filename
 
 # Initialize Flask app
-app = Flask(__name__, static_folder="static")
+app = Flask(__name__, static_folder="static", template_folder="templates")
 
 # Enable CORS
 CORS(app)
@@ -81,14 +81,27 @@ class User(db.Model):
     account_type = db.Column(db.String(10), nullable=False)
     profile_image = db.Column(db.String(255), nullable=True)
 
+# Serve Templates
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+@app.route("/login")
+def login_page():
+    return render_template("login.html")
+
+@app.route("/register")
+def register_page():
+    return render_template("register.html")
+
+@app.route("/home")
+def home_page():
+    return render_template("home.html")
+
 # Serve Static Files
-@app.route("/", defaults={"path": ""})
-@app.route("/<path:path>")
-def serve_static_files(path):
-    if path != "" and os.path.exists(app.static_folder + "/" + path):
-        return send_from_directory(app.static_folder, path)
-    else:
-        return send_from_directory("templates", "index.html")
+@app.route("/static/<path:filename>")
+def static_files(filename):
+    return send_from_directory(app.static_folder, filename)
 
 # Login API
 @app.route("/api/login", methods=["POST"])
@@ -117,27 +130,22 @@ def register():
         data = request.form.to_dict()
         data = convert_keys(data, camel_to_snake)
 
-        # Check required fields
         required_fields = [
             "username", "password", "phone_number", "country", "state", "city", "zip_code", "account_type"
         ]
         if not all(field in data for field in required_fields):
             return jsonify({"success": False, "message": "Missing required fields"}), 400
 
-        # Check if username already exists
         if User.query.filter_by(username=data["username"]).first():
             return jsonify({"success": False, "message": "Username already exists."}), 409
 
-        # Handle profile image upload
         profile_image_url = None
         if "profile_image" in request.files:
             profile_image = request.files["profile_image"]
             if profile_image:
-                # Secure filename and generate S3 key
                 filename = secure_filename(profile_image.filename)
                 s3_key = f"profile_images/{data['username']}/{filename}"
 
-                # Upload file to S3
                 s3.upload_fileobj(
                     profile_image,
                     UPLOADS_BUCKET,
@@ -146,10 +154,8 @@ def register():
                 )
                 profile_image_url = f"https://{UPLOADS_BUCKET}.s3.amazonaws.com/{s3_key}"
 
-        # Hash the password
         hashed_password = generate_password_hash(data["password"], method="pbkdf2:sha256")
 
-        # Create new user object
         new_user = User(
             username=data["username"],
             password=hashed_password,
@@ -159,7 +165,7 @@ def register():
             city=data["city"],
             zip_code=data["zip_code"],
             account_type=data["account_type"],
-            profile_image=profile_image_url,  # Store S3 URL
+            profile_image=profile_image_url,
         )
         db.session.add(new_user)
         db.session.commit()
