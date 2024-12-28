@@ -8,55 +8,61 @@
 </head>
 <body>
     <div class="container">
-        <h1>Register</h1>
-        <form id="register-form">
-            <div>
-                <label for="register-username">Username</label>
-                <input type="text" id="register-username" name="username" required>
-            </div>
-            <div>
-                <label for="register-phone">Phone Number</label>
-                <input type="tel" id="register-phone" name="phone_number" pattern="[0-9]{10}" required>
-            </div>
-            <div>
-                <label for="register-country">Country</label>
-                <input type="text" id="register-country" name="country" required>
-            </div>
-            <div>
-                <label for="register-state">State</label>
-                <input type="text" id="register-state" name="state" required>
-            </div>
-            <div>
-                <label for="register-city">City</label>
-                <input type="text" id="register-city" name="city" required>
-            </div>
-            <div>
-                <label for="register-zip">Zip Code</label>
-                <input type="text" id="register-zip" name="zip_code" pattern="[0-9]{5,10}" required>
-            </div>
-            <div>
-                <label for="register-password">Password</label>
-                <input type="password" id="register-password" name="password" minlength="8" required>
-            </div>
-            <div>
-                <label for="register-confirm-password">Confirm Password</label>
-                <input type="password" id="register-confirm-password" name="confirm_password" minlength="8" required>
-            </div>
-            <div>
-                <label for="register-account-type">Account Type</label>
-                <select id="register-account-type" name="account_type" required>
-                    <option value="Regular">Regular</option>
-                    <option value="Premium">Premium</option>
-                </select>
-            </div>
-            <div>
-                <label for="register-profile-image">Profile Image</label>
-                <input type="file" id="register-profile-image" name="profile_image" accept=".jpeg, .jpg, .png, .gif">
-            </div>
-            <button type="submit">Register</button>
-        </form>
-        <p id="register-message" class="message"></p>
-        <p>Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
+        <header>
+            <h1>Register</h1>
+        </header>
+        <main>
+            <form id="register-form" enctype="multipart/form-data">
+                <div>
+                    <label for="register-username">Username</label>
+                    <input type="text" id="register-username" name="username" required>
+                </div>
+                <div>
+                    <label for="register-phone">Phone Number</label>
+                    <input type="text" id="register-phone" name="phone_number" required>
+                </div>
+                <div>
+                    <label for="register-country">Country</label>
+                    <input type="text" id="register-country" name="country" required>
+                </div>
+                <div>
+                    <label for="register-state">State</label>
+                    <input type="text" id="register-state" name="state" required>
+                </div>
+                <div>
+                    <label for="register-city">City</label>
+                    <input type="text" id="register-city" name="city" required>
+                </div>
+                <div>
+                    <label for="register-zip">Zip Code</label>
+                    <input type="text" id="register-zip" name="zip_code" required>
+                </div>
+                <div>
+                    <label for="register-password">Password</label>
+                    <input type="password" id="register-password" name="password" required>
+                </div>
+                <div>
+                    <label for="register-confirm-password">Confirm Password</label>
+                    <input type="password" id="register-confirm-password" name="confirm_password" required>
+                </div>
+                <div>
+                    <label for="register-account-type">
+                        <input type="checkbox" id="register-account-type" name="account_type" value="Premium">
+                        Premium Account
+                    </label>
+                </div>
+                <div>
+                    <label for="register-profile-image">Profile Image</label>
+                    <input type="file" id="register-profile-image" name="profile_image" accept=".jpeg, .jpg, .png, .gif">
+                </div>
+                <button type="submit">Register</button>
+            </form>
+            <p id="register-message" class="message"></p>
+            <p>Already have an account? <a href="{{ url_for('login') }}">Login here</a>.</p>
+        </main>
+        <footer>
+            <p>&copy; 2024 BlogFolio. All rights reserved.</p>
+        </footer>
     </div>
     <script src="{{ url_for('static', filename='register.js') }}"></script>
 </body>
