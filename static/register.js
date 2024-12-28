@@ -1,59 +1,55 @@
-document.getElementById("register-form").addEventListener("submit", async (event) => {
-  event.preventDefault();
+// Load API URL from config.js
+let apiUrl = "";
+(async () => {
+    try {
+        const config = await fetch("/static/config.js");
+        const text = await config.text();
+        apiUrl = eval(text).API_URL; // Parse the API_URL variable
+    } catch (error) {
+        console.error("Error loading config.js:", error);
+    }
+})();
 
-  const formData = new FormData(document.getElementById("register-form"));
-  const userData = {
-    username: formData.get("username"),
-    password: formData.get("password"),
-    phoneNumber: formData.get("phone_number"),
-    country: formData.get("country"),
-    state: formData.get("state"),
-    city: formData.get("city"),
-    zipCode: formData.get("zip_code"),
-    accountType: formData.get("account_type"),
-  };
-  const profileImage = formData.get("profile_image");
-  const errorElement = document.getElementById("register-error");
+// Register form submission handler
+document.getElementById("register-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
 
-  if (Object.values(userData).some((value) => !value)) {
-    errorElement.textContent = "Please fill in all required fields.";
-    return;
-  }
+    const formData = new FormData();
+    formData.append("username", document.getElementById("register-username").value);
+    formData.append("phone_number", document.getElementById("register-phone").value);
+    formData.append("country", document.getElementById("register-country").value);
+    formData.append("state", document.getElementById("register-state").value);
+    formData.append("city", document.getElementById("register-city").value);
+    formData.append("zip_code", document.getElementById("register-zip").value);
+    formData.append("password", document.getElementById("register-password").value);
+    formData.append("account_type", document.getElementById("register-account-type").value);
 
-  try {
-    // Handle profile image upload (optional)
-    if (profileImage && profileImage.size > 0) {
-      const presignedUrlResponse = await fetch(`${API_URL}/api/get-presigned-url`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ filename: profileImage.name, contentType: profileImage.type }),
-      });
-      const { url } = await presignedUrlResponse.json();
-
-      await fetch(url, {
-        method: "PUT",
-        headers: { "Content-Type": profileImage.type },
-        body: profileImage,
-      });
-
-      userData.profileImage = url.split("?")[0]; // Use the S3 URL without query parameters
+    const profileImage = document.getElementById("register-profile-image").files[0];
+    if (profileImage) {
+        formData.append("profile_image", profileImage);
     }
 
-    // Register the user
-    const response = await fetch(`${API_URL}/api/register`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(userData),
-    });
+    try {
+        const response = await fetch(`${apiUrl}/api/register`, {
+            method: "POST",
+            body: formData,
+        });
 
-    const data = await response.json();
+        const data = await response.json();
 
-    if (response.ok && data.success) {
-      window.location.href = "/login.html";
-    } else {
-      errorElement.textContent = data.message || "Registration failed. Please try again.";
+        if (data.success) {
+            document.getElementById("register-message").textContent =
+                "Registration successful! Redirecting...";
+            setTimeout(() => {
+                window.location.href = "/login";
+            }, 2000);
+        } else {
+            document.getElementById("register-message").textContent =
+                data.message || "Registration failed. Please try again.";
+        }
+    } catch (error) {
+        document.getElementById("register-message").textContent =
+            "An error occurred. Please try again.";
+        console.error("Error during registration:", error);
     }
-  } catch (error) {
-    errorElement.textContent = "An error occurred. Please try again later.";
-  }
 });
