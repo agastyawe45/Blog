@@ -4,7 +4,7 @@ let apiUrl = "";
     try {
         const config = await fetch("/static/config.js");
         const text = await config.text();
-        apiUrl = eval(text).API_URL; // Parse the API_URL variable
+        apiUrl = eval(text).API_URL; // Parse the API_URL variable from config.js
     } catch (error) {
         console.error("Error loading config.js:", error);
     }
@@ -14,17 +14,34 @@ let apiUrl = "";
 document.getElementById("register-form").addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    const formData = new FormData();
-    formData.append("username", document.getElementById("register-username").value);
-    formData.append("phone_number", document.getElementById("register-phone").value);
-    formData.append("country", document.getElementById("register-country").value);
-    formData.append("state", document.getElementById("register-state").value);
-    formData.append("city", document.getElementById("register-city").value);
-    formData.append("zip_code", document.getElementById("register-zip").value);
-    formData.append("password", document.getElementById("register-password").value);
-    formData.append("account_type", document.getElementById("register-account-type").value);
-
+    const username = document.getElementById("register-username").value;
+    const phoneNumber = document.getElementById("register-phone").value;
+    const country = document.getElementById("register-country").value;
+    const state = document.getElementById("register-state").value;
+    const city = document.getElementById("register-city").value;
+    const zipCode = document.getElementById("register-zip").value;
+    const password = document.getElementById("register-password").value;
+    const confirmPassword = document.getElementById("register-confirm-password").value;
+    const accountType = document.getElementById("register-account-type").checked ? "Premium" : "Standard";
     const profileImage = document.getElementById("register-profile-image").files[0];
+
+    // Validate passwords
+    if (password !== confirmPassword) {
+        document.getElementById("register-message").textContent =
+            "Passwords do not match. Please try again.";
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("username", username);
+    formData.append("phone_number", phoneNumber);
+    formData.append("country", country);
+    formData.append("state", state);
+    formData.append("city", city);
+    formData.append("zip_code", zipCode);
+    formData.append("password", password);
+    formData.append("account_type", accountType);
+
     if (profileImage) {
         formData.append("profile_image", profileImage);
     }
@@ -39,7 +56,7 @@ document.getElementById("register-form").addEventListener("submit", async (e) =>
 
         if (data.success) {
             document.getElementById("register-message").textContent =
-                "Registration successful! Redirecting...";
+                "Registration successful! Redirecting to login...";
             setTimeout(() => {
                 window.location.href = "/login";
             }, 2000);
