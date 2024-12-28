@@ -1,45 +1,77 @@
-const user = JSON.parse(localStorage.getItem("user"));
+// Load API URL from config.js
+let apiUrl = "";
+(async () => {
+    try {
+        const config = await fetch("/static/config.js");
+        const text = await config.text();
+        apiUrl = eval(text).API_URL; // Parse the API_URL variable
+    } catch (error) {
+        console.error("Error loading config.js:", error);
+    }
+})();
 
-if (!user) {
-  window.location.href = "/login.html";
-}
-
+// Display user details on the home page
 document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("username").textContent = user.username;
-  document.getElementById("logout").addEventListener("click", () => {
-    localStorage.removeItem("user");
-    window.location.href = "/login.html";
-  });
-
-  fetchFiles(user.accountType);
+    const user = JSON.parse(localStorage.getItem("user"));
+    if (user) {
+        document.getElementById("welcome-message").textContent = `Welcome, ${user.username}!`;
+        document.getElementById("user-details").innerHTML = `
+            <p><strong>Phone:</strong> ${user.phone_number}</p>
+            <p><strong>Country:</strong> ${user.country}</p>
+            <p><strong>State:</strong> ${user.state}</p>
+            <p><strong>City:</strong> ${user.city}</p>
+            <p><strong>Zip Code:</strong> ${user.zip_code}</p>
+            <p><strong>Account Type:</strong> ${user.account_type}</p>
+        `;
+    } else {
+        window.location.href = "/login";
+    }
 });
 
-async function fetchFiles(accountType) {
-  const fileContainer = document.getElementById("file-container");
-  fileContainer.innerHTML = "Loading files...";
+// Logout handler
+document.getElementById("logout-button").addEventListener("click", () => {
+    localStorage.removeItem("user");
+    window.location.href = "/login";
+});
 
-  try {
-    const response = await fetch(`${API_URL}/api/get-signed-urls`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ accountType }),
-    });
+// Fetch and display files for regular and premium users
+const fetchFiles = async () => {
+    const user = JSON.parse(localStorage.getItem("user"));
 
-    const data = await response.json();
-
-    if (response.ok && data.success) {
-      fileContainer.innerHTML = "";
-      data.files.forEach((file) => {
-        const fileElement = document.createElement("div");
-        fileElement.innerHTML = `
-          <a href="${file.url}" target="_blank">${file.name}</a>
-        `;
-        fileContainer.appendChild(fileElement);
-      });
-    } else {
-      fileContainer.textContent = "Failed to load files.";
+    if (!user) {
+        console.error("User not logged in");
+        return;
     }
-  } catch (error) {
-    fileContainer.textContent = "An error occurred. Please try again later.";
-  }
-}
+
+    try {
+        const response = await fetch(`${apiUrl}/api/get-signed-urls`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ accountType: user.account_type }),
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            const fileList = document.getElementById("file-list");
+            fileList.innerHTML = "";
+
+            data.files.forEach((file) => {
+                const listItem = document.createElement("li");
+                const link = document.createElement("a");
+                link.href = file.url;
+                link.textContent = file.name;
+                link.target = "_blank";
+                listItem.appendChild(link);
+                fileList.appendChild(listItem);
+            });
+        } else {
+            console.error("Error fetching files:", data.message);
+        }
+    } catch (error) {
+        console.error("Error during file fetching:", error);
+    }
+};
+
+// Load files on page load
+document.addEventListener("DOMContentLoaded", fetchFiles);
