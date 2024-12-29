@@ -81,6 +81,14 @@ class User(db.Model):
     account_type = db.Column(db.String(10), nullable=False)
     profile_image = db.Column(db.String(255), nullable=True)
 
+@app.before_first_request
+def initialize_database():
+    try:
+        db.create_all()
+        logger.info("Database initialized successfully.")
+    except Exception as e:
+        logger.error(f"Error initializing the database: {e}")
+
 # Serve Templates
 @app.route("/")
 def index():
@@ -136,8 +144,6 @@ def login():
 def register():
     try:
         data = request.form.to_dict()
-        data = convert_keys(data, camel_to_snake)
-
         required_fields = [
             "username", "password", "phone_number", "country", "state", "city", "zip_code", "account_type"
         ]
@@ -150,11 +156,10 @@ def register():
         profile_image_url = None
         if "profile_image" in request.files:
             profile_image = request.files["profile_image"]
-            if profile_image:
-                filename = secure_filename(profile_image.filename)
-                s3_key = f"profile_images/{data['username']}/{filename}"
-                s3.upload_fileobj(profile_image, UPLOADS_BUCKET, s3_key)
-                profile_image_url = f"https://{UPLOADS_BUCKET}.s3.amazonaws.com/{s3_key}"
+            filename = secure_filename(profile_image.filename)
+            s3_key = f"profile_images/{data['username']}/{filename}"
+            s3.upload_fileobj(profile_image, UPLOADS_BUCKET, s3_key)
+            profile_image_url = f"https://{UPLOADS_BUCKET}.s3.amazonaws.com/{s3_key}"
 
         hashed_password = generate_password_hash(data["password"], method="pbkdf2:sha256")
 
@@ -180,19 +185,14 @@ def register():
 # Pre-signed URL API
 @app.route('/api/get-presigned-url', methods=['POST'])
 def get_presigned_url():
-    """
-    Generate a pre-signed URL for uploading files to S3.
-    """
     data = request.get_json()
 
-    # Validate incoming data
     if not data or 'filename' not in data or 'contentType' not in data:
         return jsonify({"success": False, "message": "Missing 'filename' or 'contentType' in request"}), 400
 
     try:
         logger.info(f"Request to generate presigned URL received for file: {data['filename']}")
 
-        # Generate pre-signed URL
         presigned_url = s3.generate_presigned_url(
             'put_object',
             Params={
@@ -200,7 +200,7 @@ def get_presigned_url():
                 'Key': data['filename'],
                 'ContentType': data['contentType']
             },
-            ExpiresIn=3600  # URL expiration time in seconds
+            ExpiresIn=3600
         )
         return jsonify({"success": True, "url": presigned_url}), 200
 
