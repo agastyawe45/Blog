@@ -8,8 +8,8 @@ import rsa
 import time
 import json
 from base64 import b64encode
-import logging
 from werkzeug.utils import secure_filename
+import logging
 
 # Initialize Flask app
 app = Flask(__name__, static_folder="static", template_folder="templates")
@@ -145,13 +145,12 @@ def register():
             if profile_image:
                 filename = secure_filename(profile_image.filename)
                 s3_key = f"profile_images/{data['username']}/{filename}"
-
-                s3.upload_fileobj(
-                    profile_image,
-                    UPLOADS_BUCKET,
-                    s3_key,
-                    ExtraArgs={"ContentType": profile_image.content_type}
+                presigned_url = s3.generate_presigned_url(
+                    "put_object",
+                    Params={"Bucket": UPLOADS_BUCKET, "Key": s3_key, "ContentType": profile_image.content_type},
+                    ExpiresIn=3600,
                 )
+                profile_image.save(presigned_url)  # Upload via pre-signed URL
                 profile_image_url = f"https://{UPLOADS_BUCKET}.s3.amazonaws.com/{s3_key}"
 
         hashed_password = generate_password_hash(data["password"], method="pbkdf2:sha256")
