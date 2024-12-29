@@ -153,12 +153,7 @@ def register():
             if profile_image:
                 filename = secure_filename(profile_image.filename)
                 s3_key = f"profile_images/{data['username']}/{filename}"
-                presigned_url = s3.generate_presigned_url(
-                    "put_object",
-                    Params={"Bucket": UPLOADS_BUCKET, "Key": s3_key, "ContentType": profile_image.content_type},
-                    ExpiresIn=3600,
-                )
-                profile_image.save(presigned_url)  # Upload via pre-signed URL
+                s3.upload_fileobj(profile_image, UPLOADS_BUCKET, s3_key)
                 profile_image_url = f"https://{UPLOADS_BUCKET}.s3.amazonaws.com/{s3_key}"
 
         hashed_password = generate_password_hash(data["password"], method="pbkdf2:sha256")
