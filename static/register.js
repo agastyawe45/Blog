@@ -14,14 +14,14 @@ let apiUrl = "";
 document.getElementById("register-form").addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    const username = document.getElementById("register-username").value;
-    const phoneNumber = document.getElementById("register-phone").value;
-    const country = document.getElementById("register-country").value;
-    const state = document.getElementById("register-state").value;
-    const city = document.getElementById("register-city").value;
-    const zipCode = document.getElementById("register-zip").value;
-    const password = document.getElementById("register-password").value;
-    const confirmPassword = document.getElementById("register-confirm-password").value;
+    const username = document.getElementById("register-username").value.trim();
+    const phoneNumber = document.getElementById("register-phone").value.trim();
+    const country = document.getElementById("register-country").value.trim();
+    const state = document.getElementById("register-state").value.trim();
+    const city = document.getElementById("register-city").value.trim();
+    const zipCode = document.getElementById("register-zip").value.trim();
+    const password = document.getElementById("register-password").value.trim();
+    const confirmPassword = document.getElementById("register-confirm-password").value.trim();
     const accountType = document.getElementById("register-account-type").checked ? "Premium" : "Standard";
     const profileImage = document.getElementById("register-profile-image").files[0];
 
@@ -32,15 +32,18 @@ document.getElementById("register-form").addEventListener("submit", async (e) =>
         return;
     }
 
+    // Display loading message
+    document.getElementById("register-message").textContent = "Processing your registration...";
+
     try {
         // Prepare user details
         const userDetails = {
-            username: username,
-            password: password,
+            username,
+            password,
             phone_number: phoneNumber,
-            country: country,
-            state: state,
-            city: city,
+            country,
+            state,
+            city,
             zip_code: zipCode,
             account_type: accountType,
         };
@@ -53,25 +56,25 @@ document.getElementById("register-form").addEventListener("submit", async (e) =>
             const presignedUrlResponse = await fetch(`${apiUrl}/api/get-presigned-url`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ filename, contentType: profileImage.type }),
+                body: JSON.stringify({ fileName: filename, fileType: profileImage.type }),
             });
+
+            if (!presignedUrlResponse.ok) {
+                throw new Error("Failed to generate pre-signed URL.");
+            }
 
             const presignedUrlData = await presignedUrlResponse.json();
 
-            if (presignedUrlResponse.ok && presignedUrlData.url) {
-                const uploadResponse = await fetch(presignedUrlData.url, {
-                    method: "PUT",
-                    body: profileImage,
-                    headers: { "Content-Type": profileImage.type },
-                });
+            const uploadResponse = await fetch(presignedUrlData.url, {
+                method: "PUT",
+                body: profileImage,
+                headers: { "Content-Type": profileImage.type },
+            });
 
-                if (uploadResponse.ok) {
-                    profileImageUrl = presignedUrlData.url.split("?")[0]; // URL without query parameters
-                } else {
-                    throw new Error("Failed to upload profile image.");
-                }
+            if (uploadResponse.ok) {
+                profileImageUrl = presignedUrlData.url.split("?")[0]; // URL without query parameters
             } else {
-                throw new Error(presignedUrlData.message || "Failed to generate pre-signed URL.");
+                throw new Error("Failed to upload profile image.");
             }
         }
 
@@ -81,14 +84,10 @@ document.getElementById("register-form").addEventListener("submit", async (e) =>
         }
 
         // Send registration request
-        const formData = new FormData();
-        for (const key in userDetails) {
-            formData.append(key, userDetails[key]);
-        }
-
         const registrationResponse = await fetch(`${apiUrl}/api/register`, {
             method: "POST",
-            body: formData,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(userDetails),
         });
 
         const registrationData = await registrationResponse.json();
