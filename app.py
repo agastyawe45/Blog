@@ -178,29 +178,34 @@ def register():
         return jsonify({"success": False, "message": "Internal Server Error"}), 500
 
 # Pre-signed URL API
-@app.route("/api/get-presigned-url", methods=["POST"])
+@app.route('/api/get-presigned-url', methods=['POST'])
 def get_presigned_url():
-    data = request.json
-    filename = data.get("filename")
-    content_type = data.get("contentType", "application/octet-stream")
+    """
+    Generate a pre-signed URL for uploading files to S3.
+    """
+    data = request.get_json()
 
-    if not filename:
-        return jsonify({"success": False, "message": "Filename is required"}), 400
+    # Validate incoming data
+    if not data or 'filename' not in data or 'contentType' not in data:
+        return jsonify({"success": False, "message": "Missing 'filename' or 'contentType' in request"}), 400
 
     try:
-        logger.info(f"Generating pre-signed URL for file: {filename}")
+        logger.info(f"Request to generate presigned URL received for file: {data['filename']}")
+
+        # Generate pre-signed URL
         presigned_url = s3.generate_presigned_url(
-            "put_object",
+            'put_object',
             Params={
-                "Bucket": UPLOADS_BUCKET,
-                "Key": filename,
-                "ContentType": content_type,
+                'Bucket': UPLOADS_BUCKET,
+                'Key': data['filename'],
+                'ContentType': data['contentType']
             },
-            ExpiresIn=3600,
+            ExpiresIn=3600  # URL expiration time in seconds
         )
-        return jsonify({"url": presigned_url}), 200
+        return jsonify({"success": True, "url": presigned_url}), 200
+
     except Exception as e:
-        logger.error(f"Error generating pre-signed URL: {e}")
+        logger.error(f"Error generating presigned URL: {str(e)}")
         return jsonify({"success": False, "message": "Failed to generate pre-signed URL"}), 500
 
 # Function: Generate CloudFront Signed URL
