@@ -13,9 +13,9 @@
             <h1>Login to BlogFolio</h1>
             <nav>
                 <ul>
-                    <li><a href="{{ url_for('login') }}">Login</a></li>
-                    <li><a href="{{ url_for('register') }}">Register</a></li>
-                    <li><a href="{{ url_for('home') }}">Home</a></li>
+                    <li><a href="{{ url_for('login_page') }}">Login</a></li>
+                    <li><a href="{{ url_for('register_page') }}">Register</a></li>
+                    <li><a href="{{ url_for('home_page') }}">Home</a></li>
                 </ul>
             </nav>
         </header>
@@ -28,7 +28,7 @@
                 <button type="submit">Login</button>
             </form>
             <p id="login-message" class="message"></p>
-            <p>Don't have an account? <a href="{{ url_for('register') }}">Register here</a>.</p>
+            <p>Don't have an account? <a href="{{ url_for('register_page') }}">Register here</a>.</p>
         </main>
         <footer>
             <p>&copy; 2024 BlogFolio. All rights reserved.</p>
