@@ -94,12 +94,8 @@ document.getElementById("register-form").addEventListener("submit", async (e) =>
         console.log("Registering user...");
         const registrationResponse = await fetch(`${apiUrl}/api/register`, {
             method: "POST",
-            body: new FormData(
-                Object.entries(userDetails).reduce((formData, [key, value]) => {
-                    formData.append(key, value);
-                    return formData;
-                }, new FormData())
-            ),
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(userDetails),
         });
 
         const registrationData = await registrationResponse.json();
@@ -107,7 +103,6 @@ document.getElementById("register-form").addEventListener("submit", async (e) =>
 
         if (registrationResponse.ok && registrationData.success) {
             messageElement.textContent = "Registration successful! Redirecting to login...";
-            messageElement.className = "message success";
             setTimeout(() => {
                 window.location.href = "/login";
             }, 2000);
@@ -117,6 +112,5 @@ document.getElementById("register-form").addEventListener("submit", async (e) =>
     } catch (error) {
         console.error("Error during registration:", error);
         messageElement.textContent = error.message || "An error occurred. Please try again.";
-        messageElement.className = "message error";
     }
 });
