@@ -1,3 +1,4 @@
+
 // Load API URL from config.js
 let apiUrl = "";
 (async () => {
@@ -5,7 +6,6 @@ let apiUrl = "";
         const config = await fetch("/static/config.js");
         const text = await config.text();
         apiUrl = eval(text).API_URL; // Parse the API_URL variable
-        console.log("API URL loaded:", apiUrl);
     } catch (error) {
         console.error("Error loading config.js:", error);
     }
@@ -25,7 +25,7 @@ document.addEventListener("DOMContentLoaded", () => {
             <p><strong>Account Type:</strong> ${user.account_type}</p>
         `;
     } else {
-        window.location.href = "/login"; // Redirect to login page if user is not logged in
+        window.location.href = "/login";
     }
 });
 
@@ -45,7 +45,6 @@ const fetchFiles = async () => {
     }
 
     try {
-        // Make an API call to fetch files based on the user account type
         const response = await fetch(`${apiUrl}/api/get-signed-urls`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -55,7 +54,6 @@ const fetchFiles = async () => {
         const data = await response.json();
 
         if (data.success) {
-            // Populate the file list on the page
             const fileList = document.getElementById("file-list");
             fileList.innerHTML = "";
 
@@ -64,17 +62,15 @@ const fetchFiles = async () => {
                 const link = document.createElement("a");
                 link.href = file.url;
                 link.textContent = file.name;
-                link.target = "_blank"; // Open the link in a new tab
+                link.target = "_blank";
                 listItem.appendChild(link);
                 fileList.appendChild(listItem);
             });
         } else {
             console.error("Error fetching files:", data.message);
-            document.getElementById("file-error").textContent = data.message;
         }
     } catch (error) {
         console.error("Error during file fetching:", error);
-        document.getElementById("file-error").textContent = "Failed to load files. Please try again later.";
     }
 };
 
