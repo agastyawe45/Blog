@@ -32,29 +32,68 @@ document.getElementById("register-form").addEventListener("submit", async (e) =>
         return;
     }
 
-    const formData = new FormData();
-    formData.append("username", username);
-    formData.append("phone_number", phoneNumber);
-    formData.append("country", country);
-    formData.append("state", state);
-    formData.append("city", city);
-    formData.append("zip_code", zipCode);
-    formData.append("password", password);
-    formData.append("account_type", accountType);
-
-    if (profileImage) {
-        formData.append("profile_image", profileImage);
-    }
-
     try {
-        const response = await fetch(`${apiUrl}/api/register`, {
+        // Prepare user details
+        const userDetails = {
+            username: username,
+            password: password,
+            phone_number: phoneNumber,
+            country: country,
+            state: state,
+            city: city,
+            zip_code: zipCode,
+            account_type: accountType,
+        };
+
+        let profileImageUrl = null;
+
+        // Handle profile image upload if provided
+        if (profileImage) {
+            const filename = `${username}_profile.${profileImage.name.split('.').pop()}`;
+            const presignedUrlResponse = await fetch(`${apiUrl}/api/get-presigned-url`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ filename, contentType: profileImage.type }),
+            });
+
+            const presignedUrlData = await presignedUrlResponse.json();
+
+            if (presignedUrlResponse.ok && presignedUrlData.url) {
+                const uploadResponse = await fetch(presignedUrlData.url, {
+                    method: "PUT",
+                    body: profileImage,
+                    headers: { "Content-Type": profileImage.type },
+                });
+
+                if (uploadResponse.ok) {
+                    profileImageUrl = presignedUrlData.url.split("?")[0]; // URL without query parameters
+                } else {
+                    throw new Error("Failed to upload profile image.");
+                }
+            } else {
+                throw new Error(presignedUrlData.message || "Failed to generate pre-signed URL.");
+            }
+        }
+
+        // Add profile image URL to user details
+        if (profileImageUrl) {
+            userDetails.profile_image = profileImageUrl;
+        }
+
+        // Send registration request
+        const formData = new FormData();
+        for (const key in userDetails) {
+            formData.append(key, userDetails[key]);
+        }
+
+        const registrationResponse = await fetch(`${apiUrl}/api/register`, {
             method: "POST",
             body: formData,
         });
 
-        const data = await response.json();
+        const registrationData = await registrationResponse.json();
 
-        if (data.success) {
+        if (registrationResponse.ok && registrationData.success) {
             document.getElementById("register-message").textContent =
                 "Registration successful! Redirecting to login...";
             setTimeout(() => {
@@ -62,11 +101,11 @@ document.getElementById("register-form").addEventListener("submit", async (e) =>
             }, 2000);
         } else {
             document.getElementById("register-message").textContent =
-                data.message || "Registration failed. Please try again.";
+                registrationData.message || "Registration failed. Please try again.";
         }
     } catch (error) {
+        console.error("Error during registration:", error);
         document.getElementById("register-message").textContent =
             "An error occurred. Please try again.";
-        console.error("Error during registration:", error);
     }
 });
