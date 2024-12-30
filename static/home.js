@@ -1,16 +1,3 @@
-
-// Load API URL from config.js
-let apiUrl = "";
-(async () => {
-    try {
-        const config = await fetch("/static/config.js");
-        const text = await config.text();
-        apiUrl = eval(text).API_URL; // Parse the API_URL variable
-    } catch (error) {
-        console.error("Error loading config.js:", error);
-    }
-})();
-
 // Display user details on the home page
 document.addEventListener("DOMContentLoaded", () => {
     const user = JSON.parse(localStorage.getItem("user"));
@@ -45,7 +32,7 @@ const fetchFiles = async () => {
     }
 
     try {
-        const response = await fetch(`${apiUrl}/api/get-signed-urls`, {
+        const response = await fetch(`/api/get-signed-urls`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ accountType: user.account_type }),
