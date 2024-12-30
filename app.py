@@ -111,6 +111,14 @@ def page_not_found(e):
 def static_files(filename):
     return send_from_directory(app.static_folder, filename)
 
+# Add OPTIONS handling for Flask endpoints
+@app.after_request
+def apply_cors(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    return response
+
 # Login API
 @app.route("/api/login", methods=["POST"])
 def login():
@@ -153,7 +161,13 @@ def register():
             if profile_image:
                 filename = secure_filename(profile_image.filename)
                 s3_key = f"profile_images/{data['username']}/{filename}"
-                s3.upload_fileobj(profile_image, UPLOADS_BUCKET, s3_key)
+
+                s3.upload_fileobj(
+                    profile_image,
+                    UPLOADS_BUCKET,
+                    s3_key,
+                    ExtraArgs={"ContentType": profile_image.content_type}
+                )
                 profile_image_url = f"https://{UPLOADS_BUCKET}.s3.amazonaws.com/{s3_key}"
 
         hashed_password = generate_password_hash(data["password"], method="pbkdf2:sha256")
@@ -178,34 +192,29 @@ def register():
         return jsonify({"success": False, "message": "Internal Server Error"}), 500
 
 # Pre-signed URL API
-@app.route('/api/get-presigned-url', methods=['POST'])
+@app.route("/api/get-presigned-url", methods=["POST"])
 def get_presigned_url():
-    """
-    Generate a pre-signed URL for uploading files to S3.
-    """
-    data = request.get_json()
+    data = request.json
+    filename = data.get("filename")
+    content_type = data.get("contentType", "application/octet-stream")
 
-    # Validate incoming data
-    if not data or 'filename' not in data or 'contentType' not in data:
-        return jsonify({"success": False, "message": "Missing 'filename' or 'contentType' in request"}), 400
+    if not filename:
+        return jsonify({"success": False, "message": "Filename is required"}), 400
 
     try:
-        logger.info(f"Request to generate presigned URL received for file: {data['filename']}")
-
-        # Generate pre-signed URL
+        logger.info(f"Generating pre-signed URL for file: {filename}")
         presigned_url = s3.generate_presigned_url(
-            'put_object',
+            "put_object",
             Params={
-                'Bucket': UPLOADS_BUCKET,
-                'Key': data['filename'],
-                'ContentType': data['contentType']
+                "Bucket": UPLOADS_BUCKET,
+                "Key": filename,
+                "ContentType": content_type,
             },
-            ExpiresIn=3600  # URL expiration time in seconds
+            ExpiresIn=3600,
         )
-        return jsonify({"success": True, "url": presigned_url}), 200
-
+        return jsonify({"url": presigned_url}), 200
     except Exception as e:
-        logger.error(f"Error generating presigned URL: {str(e)}")
+        logger.error(f"Error generating pre-signed URL: {e}")
         return jsonify({"success": False, "message": "Failed to generate pre-signed URL"}), 500
 
 # Function: Generate CloudFront Signed URL
