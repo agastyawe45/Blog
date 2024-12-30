@@ -15,7 +15,7 @@ import logging
 app = Flask(__name__, static_folder="static", template_folder="templates")
 
 # Enable CORS
-CORS(app)
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s %(levelname)s %(message)s")
