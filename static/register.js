@@ -4,17 +4,40 @@ let apiUrl = "";
     try {
         const config = await fetch("/static/config.js");
         const text = await config.text();
-        apiUrl = eval(text).API_URL; // Parse the API_URL variable from config.js
-        console.log("API URL loaded:", apiUrl);
+        apiUrl = eval(text).API_URL; // Parse the API_URL variable
     } catch (error) {
         console.error("Error loading config.js:", error);
     }
 })();
 
+// Function to upload profile image using a pre-signed URL
+const uploadProfileImage = async (url, file) => {
+    try {
+        const response = await fetch(url, {
+            method: "PUT",
+            headers: {
+                "Content-Type": file.type,
+            },
+            body: file,
+        });
+
+        if (!response.ok) {
+            throw new Error(`Image upload failed with status ${response.status}`);
+        }
+
+        console.log("Image uploaded successfully");
+        return true;
+    } catch (error) {
+        console.error("Error uploading image:", error);
+        return false;
+    }
+};
+
 // Register form submission handler
 document.getElementById("register-form").addEventListener("submit", async (e) => {
     e.preventDefault();
 
+    // Collect form data
     const username = document.getElementById("register-username").value;
     const phoneNumber = document.getElementById("register-phone").value;
     const country = document.getElementById("register-country").value;
@@ -24,93 +47,90 @@ document.getElementById("register-form").addEventListener("submit", async (e) =>
     const password = document.getElementById("register-password").value;
     const confirmPassword = document.getElementById("register-confirm-password").value;
     const accountType = document.getElementById("register-account-type").checked ? "Premium" : "Standard";
-    const profileImage = document.getElementById("register-profile-image").files[0];
-
-    const messageElement = document.getElementById("register-message");
-
-    // Clear any previous messages
-    messageElement.textContent = "";
+    const fileInput = document.getElementById("register-profile-image");
 
     // Validate passwords
     if (password !== confirmPassword) {
-        messageElement.textContent = "Passwords do not match. Please try again.";
+        document.getElementById("register-message").textContent =
+            "Passwords do not match. Please try again.";
         return;
     }
 
-    try {
-        // Prepare user details
-        const userDetails = {
-            username: username,
-            password: password,
-            phone_number: phoneNumber,
-            country: country,
-            state: state,
-            city: city,
-            zip_code: zipCode,
-            account_type: accountType,
-        };
+    let profileImageUrl = null;
 
-        let profileImageUrl = null;
+    // Upload profile image if present
+    if (fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        const filename = `profile_images/${username}/${file.name}`;
 
-        // Handle profile image upload if provided
-        if (profileImage) {
-            const filename = `${username}_profile.${profileImage.name.split('.').pop()}`;
-            console.log("Generating pre-signed URL...");
-
-            const presignedUrlResponse = await fetch(`${apiUrl}/api/get-presigned-url`, {
+        try {
+            // Generate pre-signed URL
+            const presignedResponse = await fetch(`${apiUrl}/api/get-presigned-url`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ filename, contentType: profileImage.type }),
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ filename, contentType: file.type }),
             });
 
-            const presignedUrlData = await presignedUrlResponse.json();
-            console.log("Pre-signed URL response:", presignedUrlData);
-
-            if (!presignedUrlResponse.ok) {
-                throw new Error(presignedUrlData.error || "Failed to generate pre-signed URL.");
+            if (!presignedResponse.ok) {
+                throw new Error("Failed to generate pre-signed URL");
             }
 
-            console.log("Uploading profile image...");
-            const uploadResponse = await fetch(presignedUrlData.url, {
-                method: "PUT",
-                body: profileImage,
-                headers: { "Content-Type": profileImage.type },
-            });
-
-            if (!uploadResponse.ok) {
-                throw new Error("Failed to upload profile image.");
+            const presignedData = await presignedResponse.json();
+            if (presignedData.url) {
+                console.log("Uploading profile image...");
+                const uploadSuccess = await uploadProfileImage(presignedData.url, file);
+                if (uploadSuccess) {
+                    profileImageUrl = presignedData.url.split("?")[0]; // Use the S3 object URL
+                }
             }
-
-            profileImageUrl = presignedUrlData.url.split("?")[0]; // URL without query parameters
-            console.log("Profile image uploaded successfully:", profileImageUrl);
+        } catch (error) {
+            console.error("Error during pre-signed URL generation or upload:", error);
+            document.getElementById("register-message").textContent =
+                "Error uploading profile image. Please try again.";
+            return;
         }
+    }
 
-        // Add profile image URL to user details
-        if (profileImageUrl) {
-            userDetails.profile_image = profileImageUrl;
-        }
+    // Prepare form data for registration
+    const formData = {
+        username,
+        phoneNumber,
+        country,
+        state,
+        city,
+        zipCode,
+        password,
+        accountType,
+        profileImage: profileImageUrl,
+    };
 
+    try {
         // Send registration request
-        console.log("Registering user...");
-        const registrationResponse = await fetch(`${apiUrl}/api/register`, {
+        const response = await fetch(`${apiUrl}/api/register`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(userDetails),
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(formData),
         });
 
-        const registrationData = await registrationResponse.json();
-        console.log("Registration response:", registrationData);
+        const data = await response.json();
 
-        if (registrationResponse.ok && registrationData.success) {
-            messageElement.textContent = "Registration successful! Redirecting to login...";
+        if (data.success) {
+            document.getElementById("register-message").textContent =
+                "Registration successful! Redirecting to login...";
             setTimeout(() => {
                 window.location.href = "/login";
             }, 2000);
         } else {
-            throw new Error(registrationData.message || "Registration failed. Please try again.");
+            document.getElementById("register-message").textContent =
+                data.message || "Registration failed. Please try again.";
         }
     } catch (error) {
+        document.getElementById("register-message").textContent =
+            "An error occurred during registration. Please try again.";
         console.error("Error during registration:", error);
-        messageElement.textContent = error.message || "An error occurred. Please try again.";
     }
 });
