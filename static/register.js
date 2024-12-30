@@ -1,18 +1,5 @@
-// Load API URL from config.json
-let apiUrl = "";
-
-(async () => {
-    try {
-        const config = await fetch("/static/config.json");
-        const json = await config.json();
-        apiUrl = json.API_URL;
-
-        console.log("API URL loaded:", apiUrl);
-    } catch (error) {
-        console.error("Error loading config.json:", error);
-        alert("Failed to load configuration. Please try again later.");
-    }
-})();
+// Load API URL from CloudFront-relative path
+let apiUrl = ""; // Not needed explicitly for relative paths
 
 // Function to upload profile image using the pre-signed URL
 const uploadProfileImage = async (url, file) => {
@@ -50,7 +37,6 @@ document.getElementById("register-form").addEventListener("submit", async (e) =>
     const accountType = document.getElementById("register-account-type").value.trim();
     const fileInput = document.getElementById("register-profile-image");
 
-    // Validate required fields
     if (!username || !phoneNumber || !country || !state || !city || !zipCode || !password || !accountType) {
         alert("Please fill in all required fields.");
         return;
@@ -65,7 +51,7 @@ document.getElementById("register-form").addEventListener("submit", async (e) =>
             const filename = `profile_images/${username}/${file.name}`;
 
             console.log("Generating pre-signed URL...");
-            const presignedResponse = await fetch(`${apiUrl}/api/get-presigned-url`, {
+            const presignedResponse = await fetch(`/api/get-presigned-url`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -89,7 +75,7 @@ document.getElementById("register-form").addEventListener("submit", async (e) =>
         console.log("Submitting registration form...");
 
         // Send the registration data to the server
-        const registrationResponse = await fetch(`${apiUrl}/api/register`, {
+        const registrationResponse = await fetch(`/api/register`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
