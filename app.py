@@ -15,7 +15,7 @@ import logging
 app = Flask(__name__, static_folder="static", template_folder="templates")
 
 # Enable CORS
-CORS(app, resources={r"/api/*": {"origins": "*"}})
+CORS(app)
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s %(levelname)s %(message)s")
@@ -50,7 +50,7 @@ CLOUDFRONT_KEY_PAIR_ID = config.get("cloudfront_key_pair_id")
 PRIVATE_KEY_PATH = config.get("cloudfront_private_key_path")
 
 # Initialize boto3 client
-s3 = boto3.client("s3", region_name=os.environ.get("AWS_REGION", "us-west-2"))
+s3 = boto3.client("s3", region_name="us-west-2")
 
 # Utility functions for case conversion
 def snake_to_camel(snake_str):
@@ -80,13 +80,6 @@ class User(db.Model):
     zip_code = db.Column(db.String(20), nullable=False)
     account_type = db.Column(db.String(10), nullable=False)
     profile_image = db.Column(db.String(255), nullable=True)
-
-# Redirect HTTP to HTTPS
-@app.before_request
-def redirect_to_https():
-    if not request.is_secure:
-        url = request.url.replace("http://", "https://", 1)
-        return redirect(url, code=301)
 
 # Serve Templates
 @app.route("/")
